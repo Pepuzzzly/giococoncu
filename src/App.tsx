@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 // ==================== GAME DATA ====================
@@ -53,8 +53,9 @@ const YELLOW = '#ffd23f';
 
 const MAX_LIVES = 3;
 const TIME_LIMIT = 30;
+const TIME_LIMIT_EXTRA = 60; // opzione accessibilità (WCAG 2.2.1)
 
-const MISSIONS: Mission[] = [
+export const MISSIONS: Mission[] = [
   {
     id: 'analog-digital',
     name: 'ANALOGICO vs DIGITALE',
@@ -442,7 +443,7 @@ const MISSIONS: Mission[] = [
   },
 ];
 
-const FULL_PASSWORD = MISSIONS.map((m) => m.passwordNumber).join('');
+export const FULL_PASSWORD = MISSIONS.map((m) => m.passwordNumber).join('');
 const TOTAL_QUESTIONS = MISSIONS.reduce((n, m) => n + m.questions.length, 0);
 
 const HEX_TABLE: [string, string][] = [
@@ -463,11 +464,11 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function shuffledOrder(count: number): number[] {
+export function shuffledOrder(count: number): number[] {
   return shuffle(Array.from({ length: count }, (_, i) => i));
 }
 
-function formatTime(ms: number): string {
+export function formatTime(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));
   const m = Math.floor(total / 60);
   const s = total % 60;
@@ -477,7 +478,7 @@ function formatTime(ms: number): string {
 const RANK_ORDER: Rank[] = ['D', 'C', 'B', 'A', 'S'];
 const RANK_COLOR: Record<Rank, string> = { S: PINK, A: GREEN, B: BLUE, C: YELLOW, D: '#9ca3af' };
 
-function calcRank(livesLost: number, hints: number, ms: number): Rank {
+export function calcRank(livesLost: number, hints: number, ms: number): Rank {
   if (livesLost === 0 && hints === 0 && ms < 5 * 60 * 1000) return 'S';
   if (livesLost <= 2 && hints <= 2) return 'A';
   if (livesLost <= 5 && hints <= 5) return 'B';
@@ -498,6 +499,7 @@ interface SaveData {
   hints: number;
   firstTry: number;
   elapsed: number;
+  extraTime: boolean;
 }
 
 const EMPTY_SAVE: SaveData = {
@@ -509,6 +511,7 @@ const EMPTY_SAVE: SaveData = {
   hints: 0,
   firstTry: 0,
   elapsed: 0,
+  extraTime: false,
 };
 
 function num(v: unknown): number {
@@ -530,6 +533,7 @@ function loadSave(): SaveData {
       hints: num(p.hints),
       firstTry: num(p.firstTry),
       elapsed: num(p.elapsed),
+      extraTime: p.extraTime === true,
     };
   } catch {
     return EMPTY_SAVE;
@@ -702,7 +706,7 @@ const UTILITY_CSS = utilityCss();
 
 // ==================== STILI GLOBALI (animazioni extra) ====================
 
-function GlobalStyles() {
+const GlobalStyles = memo(function GlobalStyles() {
   return (
     <style>{`
       ${UTILITY_CSS}
@@ -830,11 +834,12 @@ function GlobalStyles() {
       @keyframes caret { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
       .caret { animation: caret .7s steps(1) infinite; }
       @media (prefers-reduced-motion: reduce) {
-        .animate-float, .trophy, .rank-glow, .rank-blink, .unlocking { animation: none !important; }
+        *, *::before, *::after { animation: none !important; transition: none !important; }
+        .fx { display: none !important; }
       }
     `}</style>
   );
-}
+});
 
 // ==================== COMPONENTI BASE ====================
 
@@ -873,12 +878,12 @@ function StarField() {
 
 function Frame({ children, top = false }: { children: ReactNode; top?: boolean }) {
   return (
-    <div
+    <main
       className="relative z-10 flex flex-col items-center gap-5 px-4 pt-16 pb-10 w-full"
       style={{ minHeight: '100dvh', justifyContent: top ? 'flex-start' : 'center' }}
     >
       {children}
-    </div>
+    </main>
   );
 }
 
@@ -962,7 +967,7 @@ function Burst({ color }: { color: string }) {
     [color],
   );
   return (
-    <div className="fixed inset-0 pointer-events-none z-40 flex items-center justify-center" aria-hidden>
+    <div className="fx fixed inset-0 pointer-events-none z-40 flex items-center justify-center" aria-hidden>
       {particles.map((p) => (
         <span
           key={p.id}
@@ -999,7 +1004,7 @@ function ConfettiRain() {
     [],
   );
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none z-40" aria-hidden>
+    <div className="fx fixed inset-0 overflow-hidden pointer-events-none z-40" aria-hidden>
       {pieces.map((p) => (
         <span
           key={p.id}
@@ -1039,13 +1044,27 @@ function Banner({ text }: { text: string }) {
 }
 
 function ReferenceTable({ onClose }: { onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
+      // un solo elemento focusabile: il focus resta nel dialogo
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        closeRef.current?.focus();
+      }
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      opener?.focus?.();
+    };
+  }, []);
 
   return (
     <div
@@ -1066,6 +1085,7 @@ function ReferenceTable({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <button
+          ref={closeRef}
           type="button"
           onClick={() => {
             play('click');
@@ -1229,11 +1249,15 @@ function TitleScreen({
 
 function MenuScreen({
   hasProgress,
+  extraTime,
+  onToggleTime,
   onNew,
   onContinue,
   onClear,
 }: {
   hasProgress: boolean;
+  extraTime: boolean;
+  onToggleTime: () => void;
   onNew: () => void;
   onContinue: () => void;
   onClear: () => void;
@@ -1267,7 +1291,20 @@ function MenuScreen({
         </Btn>
       </div>
 
-      <div className="mt-6 text-center">
+      <button
+        type="button"
+        onClick={() => {
+          play('click');
+          onToggleTime();
+        }}
+        aria-pressed={extraTime}
+        className="font-pixel text-[10px] min-h-[44px] px-3 text-gray-300"
+        style={{ border: '2px dashed #666' }}
+      >
+        ⏱ TEMPO PER DOMANDA: {extraTime ? `${TIME_LIMIT_EXTRA}s (EXTRA)` : `${TIME_LIMIT}s`}
+      </button>
+
+      <div className="mt-2 text-center">
         <button
           type="button"
           onClick={() => setShowClear((v) => !v)}
@@ -1289,7 +1326,7 @@ function MenuScreen({
                 setShowClear(false);
               }}
             >
-              {confirm ? 'SICURO? CLICCA ANCORA' : 'CANCELLA DATI'}
+              {confirm ? 'CANCELLO TUTTO? CLICCA ANCORA' : 'CANCELLA DATI'}
             </Btn>
           </div>
         )}
@@ -1565,7 +1602,7 @@ function LessonScreen({
           <p className="sr-only">{fullText}</p>
         </div>
 
-        <p className="font-pixel text-[10px] text-gray-400 h-3">{done ? '' : 'Tocca il box per completare il testo'}</p>
+        <p className="font-pixel text-[10px] text-gray-400 h-3">{done ? '' : 'Tocca il box per mostrare tutto il testo'}</p>
 
         <div className="flex gap-3" role="group" aria-label={`Pagina ${currentPage + 1} di ${totalPages}`}>
           {Array.from({ length: totalPages }, (_, i) => (
@@ -1602,6 +1639,7 @@ function QuestionScreen({
   index,
   total,
   lives,
+  timeLimit,
   onResolve,
   onHint,
 }: {
@@ -1610,11 +1648,12 @@ function QuestionScreen({
   index: number;
   total: number;
   lives: number;
+  timeLimit: number;
   onResolve: (answer: number, hintUsed: boolean) => void;
   onHint: () => void;
 }) {
   const [selected, setSelected] = useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
+  const [timeLeft, setTimeLeft] = useState(timeLimit);
   const [removed, setRemoved] = useState<number | null>(null);
   const [showTable, setShowTable] = useState(false);
   const doneRef = useRef(false);
@@ -1637,14 +1676,22 @@ function QuestionScreen({
 
   useEffect(() => () => window.clearTimeout(doneTimer.current), []);
 
+  const pausedRef = useRef(false);
+  pausedRef.current = showTable;
+
+  // Il tempo scorre solo con la tabella chiusa (il tempo "in pausa" non viene contato)
   useEffect(() => {
-    const end = Date.now() + TIME_LIMIT * 1000;
+    let remaining = timeLimit * 1000;
+    let last = Date.now();
     const id = window.setInterval(() => {
+      const now = Date.now();
+      if (!pausedRef.current) remaining -= now - last;
+      last = now;
       if (doneRef.current) {
         window.clearInterval(id);
         return;
       }
-      const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+      const left = Math.max(0, Math.ceil(remaining / 1000));
       setTimeLeft(left);
       if (left <= 0) {
         window.clearInterval(id);
@@ -1652,7 +1699,7 @@ function QuestionScreen({
       }
     }, 200);
     return () => window.clearInterval(id);
-  }, [finish]);
+  }, [finish, timeLimit]);
 
   useEffect(() => {
     if (!doneRef.current && timeLeft <= 10 && timeLeft > 0) play('tick');
@@ -1666,7 +1713,8 @@ function QuestionScreen({
   };
 
   const answered = selected !== null;
-  const timerColor = timeLeft > 15 ? GREEN : timeLeft > 10 ? YELLOW : PINK;
+  const ratio = timeLeft / timeLimit;
+  const timerColor = ratio > 0.5 ? GREEN : ratio > 1 / 3 ? YELLOW : PINK;
   const urgent = timeLeft <= 10;
 
   return (
@@ -1690,7 +1738,7 @@ function QuestionScreen({
           <div
             className="h-full"
             style={{
-              width: `${(timeLeft / TIME_LIMIT) * 100}%`,
+              width: `${(timeLeft / timeLimit) * 100}%`,
               background: timerColor,
               boxShadow: `0 0 8px ${timerColor}`,
               transition: 'width 1s linear, background .3s',
@@ -1759,7 +1807,9 @@ function QuestionScreen({
                 }}
               >
                 <span style={{ color: isRemoved ? '#555' : mission.color }}>{String.fromCharCode(65 + i)}.</span>
-                <span className="break-words min-w-0">{opt}</span>
+                <span className="break-words min-w-0 flex-1">{opt}</span>
+                {showCorrect && <span role="img" aria-label="risposta corretta">✓</span>}
+                {isWrongPick && <span role="img" aria-label="risposta sbagliata">✗</span>}
               </button>
             );
           })}
@@ -1789,7 +1839,6 @@ function QuestionScreen({
 }
 
 interface LastResult {
-  ok: boolean;
   timeout: boolean;
   points: number;
   question: Question;
@@ -1814,7 +1863,7 @@ function CorrectScreen({ result, color, onNext }: { result: LastResult; color: s
           style={{ border: `2px solid ${GREEN}88`, background: 'rgba(10,10,22,.85)' }}
         >
           <p className="font-pixel text-[10px] mb-3" style={{ color: GREEN }}>
-            PERCHÉ?
+            PERCHÉ È GIUSTA
           </p>
           <p className="font-pixel text-[10px] md:text-xs leading-[2.0] text-gray-200">{result.question.explanation}</p>
         </div>
@@ -2031,8 +2080,8 @@ function PasswordScreen({
         </div>
 
         {error && (
-          <p className="font-pixel text-[10px] animate-blink" style={{ color: PINK }}>
-            PASSWORD ERRATA!
+          <p role="alert" className="font-pixel text-[10px] leading-[2.0] animate-blink" style={{ color: PINK }}>
+            PASSWORD ERRATA! Controlla le cifre ottenute nelle missioni.
           </p>
         )}
 
@@ -2160,6 +2209,7 @@ export default function App() {
   const [glitch, setGlitch] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
   const [banner, setBanner] = useState<string | null>(null);
+  const [extraTime, setExtraTime] = useState(() => loadSave().extraTime);
 
   const goTimer = useRef<number | undefined>(undefined);
   const bannerTimer = useRef<number | undefined>(undefined);
@@ -2326,7 +2376,7 @@ export default function App() {
         setScore((s) => s + pts);
         setScoredQuestions((arr) => [...arr, key]);
       }
-      setLastResult({ ok: true, timeout: false, points: pts, question: q, hintUsed, isLast });
+      setLastResult({ timeout: false, points: pts, question: q, hintUsed, isLast });
       go('correct');
     } else {
       const newLives = lives - 1;
@@ -2334,7 +2384,7 @@ export default function App() {
       setTotalLivesLost((n) => n + 1);
       setMissionErrors((n) => n + 1);
       setFailedQuestions((arr) => (arr.includes(key) ? arr : [...arr, key]));
-      setLastResult({ ok: false, timeout: answer === -1, points: 0, question: q, hintUsed, isLast });
+      setLastResult({ timeout: answer === -1, points: 0, question: q, hintUsed, isLast });
 
       play('life-lost');
       if (newLives <= 0) window.setTimeout(() => play('game-over'), 450);
@@ -2429,6 +2479,11 @@ export default function App() {
         return (
           <MenuScreen
             hasProgress={save.completed.length > 0}
+            extraTime={extraTime}
+            onToggleTime={() => {
+              setExtraTime(!extraTime);
+              persist({ extraTime: !extraTime });
+            }}
             onNew={handleNewGame}
             onContinue={handleContinue}
             onClear={handleClearData}
@@ -2478,6 +2533,7 @@ export default function App() {
             index={currentQuestionIndex}
             total={quizOrder.length}
             lives={lives}
+            timeLimit={extraTime ? TIME_LIMIT_EXTRA : TIME_LIMIT}
             onResolve={handleResolve}
             onHint={() => {
               setHintsUsed((n) => n + 1);
@@ -2553,7 +2609,7 @@ export default function App() {
         </div>
       </div>
 
-      {glitch && <div className="glitch-bars" />}
+      {glitch && <div className="glitch-bars fx" />}
       {flashKey > 0 && <div key={flashKey} className="flash" />}
       {banner && <Banner text={banner} />}
     </div>
