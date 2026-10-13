@@ -1392,7 +1392,7 @@ function MissionsScreen({
                   } as CSSProperties
                 }
               >
-                <span className="font-pixel text-[10px]" style={{ color: isLocked ? '#777' : '#ddd' }}>
+                <span className="font-pixel text-[8px] tracking-[0.3em]" style={{ color: '#6b7280' }}>
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 <span className="font-pixel text-3xl md:text-4xl" style={{ color: isLocked ? '#555' : mission.color }}>
@@ -1440,6 +1440,7 @@ function MissionsScreen({
               );
             })}
           </div>
+          <p className="font-pixel text-[9px] text-gray-500">Un numero per missione, in ordine</p>
         </div>
 
         <div className="flex flex-wrap gap-4 justify-center mt-2">
@@ -1586,14 +1587,14 @@ function LessonScreen({
         >
           {/* testo completo invisibile: riserva lo spazio e mantiene stabile il layout */}
           <div
-            className="font-pixel text-[11px] md:text-xs leading-[2.2] whitespace-pre-wrap break-words"
+            className="font-pixel text-[10px] md:text-xs leading-[2.2] whitespace-pre-wrap break-words"
             style={{ visibility: 'hidden' }}
             aria-hidden
           >
             {fullText}
           </div>
           <div
-            className="absolute left-4 right-4 top-4 md:left-6 md:right-6 md:top-6 font-pixel text-[11px] md:text-xs leading-[2.2] whitespace-pre-wrap break-words text-gray-100"
+            className="absolute left-4 right-4 top-4 md:left-6 md:right-6 md:top-6 font-pixel text-[10px] md:text-xs leading-[2.2] whitespace-pre-wrap break-words text-gray-100"
             aria-hidden
           >
             <Highlighted text={shown} color={mission.color} />
@@ -1775,7 +1776,7 @@ function QuestionScreen({
             background: 'rgba(10,10,22,.88)',
           }}
         >
-          <p className="font-pixel text-[11px] md:text-sm leading-[2.0] text-white">{question.text}</p>
+          <p className="font-pixel text-[10px] md:text-sm leading-[2.0] text-white">{question.text}</p>
         </div>
 
         {/* opzioni */}
