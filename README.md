@@ -8,7 +8,7 @@ Gruppo 3: **Loche** · **Cotza** — Prof. Concu — A.S. 2026/2027
 
 **→ [giococoncu.vercel.app](https://giococoncu.vercel.app)**
 
-Un escape game in stile arcade retro (pixel art, effetti CRT, neon glow) che
+Un escape game creato in vibecoding con uno stile arcade retro (pixel art, effetti CRT, neon glow) che
 insegna i sistemi di numerazione con 4 missioni — ognuna con una lezione e un
 quiz — e poi verifica l'apprendimento. Completando tutte le missioni si
 ottiene una password a 4 cifre che sblocca la vittoria.
@@ -18,12 +18,6 @@ ottiene una password a 4 cifre che sblocca la vittoria.
   Binario→Esadecimale)
 - 3 vite per missione, timer per domanda, hint, tabella di riferimento
 - Audio 8-bit, confetti, salvataggio dei progressi, easter egg
-
-## 📑 Presentazione
-
-[`Presentazione-Gruppo3.pptx`](./Presentazione-Gruppo3.pptx) — slide per
-l'esposizione in classe, con le 10 domande guida del compito e il riepilogo
-delle 3 conversioni assegnate.
 
 ## 🛠️ Stack e sviluppo locale
 
