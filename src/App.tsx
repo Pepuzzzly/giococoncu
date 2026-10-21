@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 // ==================== GAME DATA ====================
-// Compito 1 - Sistemi di Numerazione - Gruppo 3 (Loche, Cotza, Atzori)
+// Compito 1 - Sistemi di Numerazione - Gruppo 3 (Loche, Cotza)
 // Prof. Concu - A.S. 2026/2027
 
 interface Question {
@@ -1216,14 +1216,14 @@ function TitleScreen({
         type="button"
         onClick={handleGroupClick}
         className="mt-4 text-center cursor-default select-none"
-        aria-label="Gruppo 3: Loche, Cotza, Atzori"
+        aria-label="Gruppo 3: Loche, Cotza"
       >
         <span className="block text-3xl mb-2">👾</span>
         <span className="block font-pixel text-[10px] md:text-xs tracking-[0.1em] neon-text-blue leading-relaxed">
           GRUPPO 3
         </span>
         <span className="block font-pixel text-[10px] md:text-xs neon-text-blue leading-relaxed mt-1">
-          LOCHE • COTZA • ATZORI
+          LOCHE • COTZA
         </span>
       </button>
 
@@ -2156,7 +2156,7 @@ function VictoryScreen({ stats, onRestart }: { stats: FinalStats; onRestart: () 
         </div>
 
         <div className="font-pixel text-[10px] text-gray-400 leading-[2.1]">
-          <p style={{ color: PURPLE }}>Gruppo 3: Loche • Cotza • Atzori</p>
+          <p style={{ color: PURPLE }}>Gruppo 3: Loche • Cotza</p>
           <p>Prof. Concu • A.S. 2026/2027</p>
         </div>
 
@@ -2280,7 +2280,7 @@ export default function App() {
 
   const handleSecretClick = useCallback(() => {
     play('special');
-    showBanner('Made with 💜 by Loche, Cotza & Atzori', 3500);
+    showBanner('Made with 💜 by Loche & Cotza', 3500);
   }, [showBanner]);
 
   const handleConcuEgg = useCallback(() => {
